@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        GIT_CREDENTIALS_ID = 'github-credentials' // Remplacez par l'ID des informations d'identification Jenkins
+        GIT_CREDENTIALS_ID = 'your-credentials-id' // Remplacez par l'ID des informations d'identification Jenkins
     }
     stages {
         stage('Clone Repository') {
@@ -38,7 +38,7 @@ pipeline {
         always {
             script {
                 dir('blog-website') {
-                    junit 'path/to/your/test-results/*.xml' // Remplacez par le chemin réel vers vos résultats de test
+                    junit 'test-results/results.xml' // Chemin vers les résultats des tests
                 }
             }
         }
