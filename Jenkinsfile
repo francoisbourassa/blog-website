@@ -1,46 +1,41 @@
 pipeline {
     agent any
-    environment {
-        GIT_CREDENTIALS_ID = 'your-credentials-id' // Remplacez par l'ID des informations d'identification Jenkins
-    }
+
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        sh 'git config --global http.sslVerify false'
-                        sh 'git config --global core.askPass /bin/true'
-                        sh 'git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/francoisbourassa/blog-website.git'
-                    }
-                }
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/francoisbourassa/blog-website', credentialsId: 'github-credentials']]])
             }
         }
-        stage('Build') {
+
+        stage('Install dependencies') {
             steps {
-                script {
-                    dir('blog-website') {
-                        sh 'npm install'
-                    }
-                }
+                sh 'npm install'
             }
         }
-        stage('Test') {
+
+        stage('Run tests') {
             steps {
-                script {
-                    dir('blog-website') {
-                        sh 'npm test'
-                    }
-                }
+                sh './node_modules/.bin/mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./test-results/results.xml \'test/**/*.js\''
+            }
+        }
+
+        stage('Publish test results') {
+            steps {
+                junit 'test-results/results.xml'
             }
         }
     }
+
     post {
         always {
-            script {
-                dir('blog-website') {
-                    junit 'test-results/results.xml' // Chemin vers les résultats des tests
-                }
-            }
+            archiveArtifacts artifacts: 'test-results/*.xml', allowEmptyArchive: true
+            junit 'test-results/results.xml'
+        }
+        failure {
+            mail to: 'you@example.com',
+                 subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "Something is wrong with ${env.BUILD_URL}"
         }
     }
 }
